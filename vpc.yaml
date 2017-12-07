@@ -1,0 +1,24 @@
+Description: Describes the VPCs
+Resources:
+  CloudFormationChangesTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      DisplayName: "CFChanges"
+      TopicName: "CFChanges"
+  DefaultVPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      EnableDnsHostnames: "true"
+      InstanceTenancy: "default"
+      Tags:
+      - Key: Name
+        Value: DefaultVPC
+  PrivateSubnetAZA:
+    Type: "AWS::EC2::Subnet"
+    VpcId: !Ref DefaultVPC
+  PublicSubnetAZA:
+    Type: "AWS::EC2::Subnet"
+    VpcId: !Ref DefaultVPC
+
+
