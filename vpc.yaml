@@ -1,4 +1,4 @@
-Description: Describes the VPCs
+Description: Describes the VPCs as applied to us-east-2
 Resources:
   CloudFormationChangesTopic:
     Type: 'AWS::SNS::Topic'
@@ -9,16 +9,99 @@ Resources:
     Type: "AWS::EC2::VPC"
     Properties:
       CidrBlock: "10.0.0.0/16"
-      EnableDnsHostnames: "true"
+      EnableDnsHostnames: true
       InstanceTenancy: "default"
       Tags:
       - Key: Name
         Value: DefaultVPC
-  PrivateSubnetAZA:
+  PrivateSubnetA:
     Type: "AWS::EC2::Subnet"
-    VpcId: !Ref DefaultVPC
-  PublicSubnetAZA:
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.0.0/24
+      Tags:
+      - Key: Name
+        Value: PrivateSubnetA
+  PublicSubnetA:
     Type: "AWS::EC2::Subnet"
-    VpcId: !Ref DefaultVPC
-
-
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: PublicSubnetA
+  PrivateSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.2.0/24
+      Tags:
+      - Key: Name
+        Value: PrivateSubnetB
+  PublicSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: PublicSubnetB
+  PrivateSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.4.0/24
+      Tags:
+      - Key: Name
+        Value: PrivateSubnetC
+  PublicSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.5.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: PublicSubnetC
+  DefaultInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: DefaultInternetGateway
+  AttachGateway:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      InternetGatewayId: !Ref DefaultInternetGateway
+  DefaultRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      Tags:
+      - Key: Name
+        Value: DefaultRouteTable
+  InternetRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref DefaultRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref DefaultInternetGateway
+  PublicRouteAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref DefaultRouteTable
+      SubnetId: !Ref PublicSubnetA
+  PublicRouteAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref DefaultRouteTable
+      SubnetId: !Ref PublicSubnetB
+  PublicRouteAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref DefaultRouteTable
+      SubnetId: !Ref PublicSubnetC
