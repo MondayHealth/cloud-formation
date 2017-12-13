@@ -1,10 +1,11 @@
+import argparse
 from typing import Union
 
 import boto3
 from botocore.exceptions import ClientError
 
 BUCKET_NAME: str = "mh.cloudformation.templates"
-STACK_NAME: str = "MondayHealthNetworkingDefault"
+STACK_PREFIX: str = "MondayHealth"
 FILE_NAME: str = "vpc.yaml"
 NOTIF_ARN: str = "CFChanges"
 
@@ -52,6 +53,10 @@ def stack_exists(name: str) -> bool:
     results = cf.list_stacks()
     for result in results['StackSummaries']:
         if name == result['StackName']:
+            if result['StackStatus'] == 'DELETE_COMPLETE':
+                # Entries for deleted stacks hang around in results even though
+                # they are not visible in the console.
+                return False
             return True
     return False
 
@@ -60,9 +65,8 @@ def update_stack(stack_name: str, template_name: str) -> None:
     cf = boto3.client('cloudformation')
     """ :type : pyboto3.cloudformation """
     t_name = s3_path_for_template(template_name)
-    arn = get_update_arn()
-    cf.update_stack(StackName=stack_name, TemplateURL=t_name,
-                    NotificationARNs=[arn])
+    # arn = get_update_arn()
+    cf.update_stack(StackName=stack_name, TemplateURL=t_name)
 
 
 def create_stack(stack_name: str, template_name: str) -> None:
@@ -72,17 +76,30 @@ def create_stack(stack_name: str, template_name: str) -> None:
     cf.create_stack(StackName=stack_name, TemplateURL=t_path)
 
 
-def do_work() -> None:
-    if not validate_template(FILE_NAME):
+def add_or_update_template(file_name: str) -> None:
+    if not validate_template(file_name):
         print("Invalid template: stopping.")
         return
 
-    store_file(FILE_NAME)
-    if not stack_exists(STACK_NAME):
-        create_stack(STACK_NAME, FILE_NAME)
+    stack = STACK_PREFIX + file_name.split(".")[0].upper()
+    print("Updating", stack, "with configuration", file_name)
+
+    store_file(file_name)
+    if not stack_exists(stack):
+        print("Stack does not exist, creating...")
+        create_stack(stack, file_name)
     else:
-        update_stack(STACK_NAME, FILE_NAME)
+        print("Stack exists, updating...")
+        update_stack(stack, file_name)
+
+
+def run_from_command_line() -> None:
+    parser = argparse.ArgumentParser(description="Update a named CF template.")
+    parser.add_argument('name', metavar='name', type=str,
+                        help='The name of the file before the extension.')
+    args = parser.parse_args()
+    add_or_update_template(args.name + ".yaml")
 
 
 if __name__ == "__main__":
-    do_work()
+    run_from_command_line()

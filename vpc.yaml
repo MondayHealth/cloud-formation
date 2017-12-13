@@ -19,6 +19,7 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.0.0/24
+      AvailabilityZone: us-east-2a
       Tags:
       - Key: Name
         Value: PrivateSubnetA
@@ -27,6 +28,7 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-2a
       MapPublicIpOnLaunch: true
       Tags:
       - Key: Name
@@ -36,6 +38,7 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-2b
       Tags:
       - Key: Name
         Value: PrivateSubnetB
@@ -44,6 +47,7 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-east-2b
       MapPublicIpOnLaunch: true
       Tags:
       - Key: Name
@@ -53,6 +57,7 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.4.0/24
+      AvailabilityZone: us-east-2c
       Tags:
       - Key: Name
         Value: PrivateSubnetC
@@ -61,10 +66,21 @@ Resources:
     Properties:
       VpcId: !Ref DefaultVPC
       CidrBlock: 10.0.5.0/24
+      AvailabilityZone: us-east-2c
       MapPublicIpOnLaunch: true
       Tags:
       - Key: Name
         Value: PublicSubnetC
+  DMZSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      CidrBlock: 10.0.6.0/24
+      AvailabilityZone: us-east-2a
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: DMZSubnet
   DefaultInternetGateway:
     Type: "AWS::EC2::InternetGateway"
     Properties:
@@ -82,7 +98,14 @@ Resources:
       VpcId: !Ref DefaultVPC
       Tags:
       - Key: Name
-        Value: DefaultRouteTable
+        Value: "Public Route Table"
+  PrivateRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref DefaultVPC
+      Tags:
+      - Key: Name
+        Value: "Private Route Table"
   InternetRoute:
     Type: "AWS::EC2::Route"
     DependsOn: AttachGateway
@@ -105,3 +128,86 @@ Resources:
     Properties:
       RouteTableId: !Ref DefaultRouteTable
       SubnetId: !Ref PublicSubnetC
+  DMZRouteAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref DefaultRouteTable
+      SubnetId: !Ref DMZSubnet
+  NATEIP:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  NATGateway:
+    Type: "AWS::EC2::NatGateway"
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+        - NATEIP
+        - AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: "Private NAT gateway"
+  PrivateNATRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+  PrivateRouteAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetA
+  PrivateRouteAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetB
+  PrivateRouteAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnetC
+Outputs:
+  VPCID:
+    Description: "The default VPC ID."
+    Value: !Ref DefaultVPC
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCID"
+  PrivateSubnetA:
+    Description: "Private Subnet AZ A"
+    Value: !Ref PrivateSubnetA
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetA"
+  PrivateSubnetB:
+    Description: "Private Subnet AZ B"
+    Value: !Ref PrivateSubnetB
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetB"
+  PrivateSubnetC:
+    Description: "Private Subnet AZ C"
+    Value: !Ref PrivateSubnetC
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnetC"
+  PublicSubnetA:
+    Description: "Public Subnet AZ A"
+    Value: !Ref PublicSubnetA
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetA"
+  PublicSubnetB:
+    Description: "Public Subnet AZ B"
+    Value: !Ref PublicSubnetB
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetB"
+  PublicSubnetC:
+    Description: "Public Subnet AZ C"
+    Value: !Ref PublicSubnetC
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnetC"
+  DMZSubnetOutput:
+    Description: "DMZ Subnet"
+    Value: !Ref DMZSubnet
+    Export:
+      Name: !Sub "${AWS::StackName}-DMZSubnet"
