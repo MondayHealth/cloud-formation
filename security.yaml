@@ -110,6 +110,18 @@ Resources:
       PortRange:
         From: "22"
         To: "22"
+  PrivateACLEphemeralOut:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      NetworkAclId: !Ref PrivateACL
+      RuleNumber: "200"
+      Protocol: "6"
+      RuleAction: allow
+      Egress: "false"
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: "1024"
+        To: "65535"
   DMZACL:
     Type: "AWS::EC2::NetworkAcl"
     Properties:
@@ -121,10 +133,10 @@ Resources:
     Type: "AWS::EC2::NetworkAclEntry"
     Properties:
       NetworkAclId: !Ref DMZACL
-      RuleNumber: "150"
+      RuleNumber: "100"
       Protocol: "6"
       RuleAction: allow
-      Egress: "true"
+      Egress: "false"
       CidrBlock: 0.0.0.0/0
       PortRange:
         From: "22"
@@ -133,14 +145,26 @@ Resources:
     Type: "AWS::EC2::NetworkAclEntry"
     Properties:
       NetworkAclId: !Ref DMZACL
-      RuleNumber: "150"
+      RuleNumber: "100"
       Protocol: "6"
       RuleAction: allow
-      Egress: "false"
+      Egress: "true"
       CidrBlock: 10.0.0.0/8
       PortRange:
         From: "22"
         To: "22"
+  DMZAllowEphemeralOut:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      NetworkAclId: !Ref DMZACL
+      RuleNumber: "200"
+      Protocol: "6"
+      RuleAction: allow
+      Egress: "true"
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: "1024"
+        To: "65535"
   PublicACLAssociationA:
     Type: "AWS::EC2::SubnetNetworkAclAssociation"
     Properties:
