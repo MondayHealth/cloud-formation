@@ -33,6 +33,9 @@ to communicate with the outside in both directions. Further there is a DMZ for
 bastion nodes. SSH is allowed from DMZ into both types of subnets but only
 only out from the DMZ. All subnets only accept SSH from the DMZ subnet.
 
+## DB
+Configuration for RDS
+
 # Concerns
 1. Multi-zone architectures seem complex
     1. Is there a way to do a failover NAT? It needs to be located in one AZ

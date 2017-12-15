@@ -1,0 +1,36 @@
+Description: Describes managed databases we need
+Parameters:
+  DBPassword:
+    NoEcho: true
+    Description: "The database admin account password"
+    Type: String
+    MinLength: 5
+    MaxLength: 41
+    AllowedPattern: ^[a-zA-Z0-9]*$
+Resources:
+  SubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "Group of private subnets"
+      SubnetIds:
+        - !ImportValue "MondayHealthVPC-PrivateSubnetA"
+        - !ImportValue "MondayHealthVPC-PrivateSubnetB"
+        - !ImportValue "MondayHealthVPC-PrivateSubnetC"
+      Tags:
+        - Key: "Name"
+          Value: "Private Subnets"
+  ProviderDB:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBName: "ProviderDB"
+      AllocatedStorage: 20
+      DBInstanceClass: "db.t2.micro"
+      Engine: "postgres"
+      EngineVersion: "9.6.5"
+      MasterUsername: "root"
+      DBSubnetGroupName: !Ref "SubnetGroup"
+      MasterUserPassword: !Ref "DBPassword"
+      Tags:
+        - Key: "Name"
+          Value: "Provider Database"
+    DeletionPolicy: "Snapshot"

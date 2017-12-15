@@ -1,5 +1,5 @@
 import argparse
-from typing import Union
+from typing import Union, MutableMapping, List
 
 import boto3
 from botocore.exceptions import ClientError
@@ -8,6 +8,8 @@ BUCKET_NAME: str = "mh.cloudformation.templates"
 STACK_PREFIX: str = "MondayHealth"
 FILE_NAME: str = "vpc.yaml"
 NOTIF_ARN: str = "CFChanges"
+
+ParamType = List[MutableMapping]
 
 
 def s3_path_for_template(name: str) -> str:
@@ -61,22 +63,24 @@ def stack_exists(name: str) -> bool:
     return False
 
 
-def update_stack(stack_name: str, template_name: str) -> None:
+def update_stack(stack_name: str, template_name: str,
+                 params: ParamType) -> None:
     cf = boto3.client('cloudformation')
     """ :type : pyboto3.cloudformation """
     t_name = s3_path_for_template(template_name)
     # arn = get_update_arn()
-    cf.update_stack(StackName=stack_name, TemplateURL=t_name)
+    cf.update_stack(StackName=stack_name, TemplateURL=t_name, Parameters=params)
 
 
-def create_stack(stack_name: str, template_name: str) -> None:
+def create_stack(stack_name: str, template_name: str,
+                 params: ParamType) -> None:
     cf = boto3.client('cloudformation')
     """ :type : pyboto3.cloudformation """
     t_path = s3_path_for_template(template_name)
-    cf.create_stack(StackName=stack_name, TemplateURL=t_path)
+    cf.create_stack(StackName=stack_name, TemplateURL=t_path, Parameters=params)
 
 
-def add_or_update_template(file_name: str) -> None:
+def add_or_update_template(file_name: str, params: ParamType) -> None:
     if not validate_template(file_name):
         print("Invalid template: stopping.")
         return
@@ -87,18 +91,26 @@ def add_or_update_template(file_name: str) -> None:
     store_file(file_name)
     if not stack_exists(stack):
         print("Stack does not exist, creating...")
-        create_stack(stack, file_name)
+        create_stack(stack, file_name, params)
     else:
         print("Stack exists, updating...")
-        update_stack(stack, file_name)
+        update_stack(stack, file_name, params)
 
 
 def run_from_command_line() -> None:
     parser = argparse.ArgumentParser(description="Update a named CF template.")
     parser.add_argument('name', metavar='name', type=str,
                         help='The name of the file before the extension.')
+    parser.add_argument('--params', metavar='params', type=str, nargs='*',
+                        help='Params passed to the template (key,val)')
+
     args = parser.parse_args()
-    add_or_update_template(args.name + ".yaml")
+    params = []
+    if args.params is not None:
+        for param in args.params:
+            key, val = param.split(",")
+            params.append({"ParameterKey": key, "ParameterValue": val})
+    add_or_update_template(args.name + ".yaml", params)
 
 
 if __name__ == "__main__":
