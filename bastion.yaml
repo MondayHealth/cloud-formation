@@ -1,0 +1,61 @@
+Description: Bastion server in the DMZ Subnet
+Resources:
+  BastionSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      Tags:
+       - Key: "Name"
+         Value: "bastion-security-group"
+      GroupDescription: "Allow SSH in and out of host"
+      VpcId: !ImportValue "MondayHealthVPC-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: 173.56.1.246/32
+        Description: "Enriques apt"
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp: 207.38.131.230/32
+        Description: "Larrys apt"
+      - IpProtocol: icmp
+        FromPort: "8"
+        ToPort: "-1"
+        CidrIp: 10.0.0.0/8
+        Description: "Internal ping"
+      - IpProtocol: tcp
+        FromPort: "5432"
+        ToPort: "5432"
+        CidrIp: 10.0.0.0/8
+        Description: "PostgreSQL"
+      SecurityGroupEgress:
+      - IpProtocol: "-1"
+        FromPort: '0'
+        ToPort: '65535'
+        CidrIp: 0.0.0.0/0
+        Description: "All"
+  BastionInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: "ami-e97c548c"
+      AvailabilityZone: "us-east-2a"
+      InstanceInitiatedShutdownBehavior: "stop"
+      InstanceType: "t2.micro"
+      KeyName: "test-instance-pair"
+      SecurityGroupIds:
+       - !Ref BastionSecurityGroup
+      SubnetId: !ImportValue "MondayHealthVPC-DMZSubnet"
+      Tags:
+       - Key: "Name"
+         Value: "bastion"
+  BastionDNSRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      HostedZoneId: "ZU3BKJL43AHEW"
+      Comment: "Bastion DNS entry."
+      Name: "bastion.monday.health."
+      Type: A
+      TTL: "300"
+      ResourceRecords:
+      - !GetAtt BastionInstance.PublicIp
