@@ -12,6 +12,11 @@ Resources:
       - IpProtocol: tcp
         FromPort: '22'
         ToPort: '22'
+        CidrIp: 72.226.108.254/32
+        Description: "Chris apt"
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
         CidrIp: 173.56.1.246/32
         Description: "Enriques apt"
       - IpProtocol: tcp
